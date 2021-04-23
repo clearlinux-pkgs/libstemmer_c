@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alberto Murillo <alberto.murillo.silva@intel.com>
+Date: Mon, 10 Aug 2015 15:50:01 -0500
+Subject: [PATCH] Make libstemmer.so
+
+[2021-04-23]: Create symlink for SONAME as well; make sure symlink chain
+              follows the usual convention (*.so -> SONAME -> *.so.*);
+	      install the library first to avoid `install`'s default of
+	      dereferencing the symlinks when copying; install
+	      libstemmer.h.
+
+Signed-off-by: Patrick McCarty <patrick.mccarty@intel.com>
+---
+ Makefile | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 59dce1e..e1ac4a6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,10 +1,20 @@
+ include mkinc.mak
+ CFLAGS=-O2
+ CPPFLAGS=-Iinclude
+-all: libstemmer.o stemwords
++all: libstemmer.so
++libstemmer.so: $(snowball_sources:.c=.o)
++	$(CC) $(CFLAGS) -shared $(LDFLAGS) -Wl,-soname,libstemmer.so.0 -o $@.0.0.0 $^
+ libstemmer.o: $(snowball_sources:.c=.o)
+ 	$(AR) -cru $@ $^
+ stemwords: examples/stemwords.o libstemmer.o
+ 	$(CC) $(CFLAGS) -o $@ $^
+ clean:
+ 	rm -f stemwords *.o src_c/*.o examples/*.o runtime/*.o libstemmer/*.o
++
++install:
++	mkdir -p $(DESTDIR)/usr/include
++	install -m 0644 include/libstemmer.h $(DESTDIR)/usr/include
++	mkdir -p $(DESTDIR)/usr/lib64
++	install -m 0755 libstemmer.so.0.0.0 $(DESTDIR)/usr/lib64
++	ln -s libstemmer.so.0.0.0 $(DESTDIR)/usr/lib64/libstemmer.so.0
++	ln -s libstemmer.so.0 $(DESTDIR)/usr/lib64/libstemmer.so
